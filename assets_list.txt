@@ -1,0 +1,9 @@
+rural-base
+suburb-base
+addition
+solar
+rural-painted
+suburb-painted
+leak
+smash
+splat
