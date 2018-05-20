@@ -3,7 +3,6 @@ from pygame.locals import *
 from pygame import constants
 from pgu import gui
 
-
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 DISPLAY = (SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -12,8 +11,8 @@ DEPTH = 0
 FPS = 0
 TITLE = 'Have A House'
 
-XY_TITLE = (20,25)
-XY_PROMPT = (20,70)
+XY_TITLE = (20, 25)
+XY_PROMPT = (20, 70)
 X_CHOICES = 25
 Y_CHOICES = 120
 INC_CHOICES = 35
@@ -21,6 +20,7 @@ INC_CHOICES = 35
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 BASE_PATH = os.getcwd()
+
 
 def save_file(content, filepath=None):
     if filepath is None:
@@ -54,7 +54,6 @@ def load_image(filename, color_key=None):
 
 
 def render_textrect(string, font, rect, text_color, justification=0):
-
     final_lines = []
     requested_lines = string.splitlines()
     for requested_line in requested_lines:
@@ -74,7 +73,8 @@ def render_textrect(string, font, rect, text_color, justification=0):
                     final_lines.append(accumulated_line)
                     accumulated_line = word + ' '
             final_lines.append(accumulated_line)
-        else:final_lines.append(requested_line)
+        else:
+            final_lines.append(requested_line)
 
     surface = pygame.Surface(rect.size)
     surface.fill(BLACK)
@@ -121,10 +121,34 @@ class GameObject:
         self.house = house
         self.value = 0
         self.repairs = []
-        self.improvements = [] # preloaded improvements
-        self.turn = 0
+        self.improvements = [("Install Solar", "install_solar"),
+                             ("Change Paint", "change_paint"),
+                             ("Add Addition", "add_addition"),
+                             ]
+        self.turn = 1
 
-#improvements
+    def do_event(self, event):
+        method = getattr(self, event)
+        method()
+        mark = None
+        for t in self.improvements:
+            if event == t[1]:
+                mark = t
+        if mark:
+            self.improvements.remove(mark)
+            print(self.improvements)
+            return
+
+        for t in self.repairs:
+            if event == t[1]:
+                mark = t
+
+        if mark:
+            self.repairs.remove(mark)
+            return
+        return
+
+    # improvements
     def install_solar(self):
         self.balance -= 10000
         self.house.value += 8000
@@ -137,25 +161,31 @@ class GameObject:
         self.balance -= 25000
         self.house.value += 20000
 
-#repairs
+    # repairs
     def fix_leak(self):
         self.balance -= 10000
-        self.house.value *= .60
+        self.house.value += 10000
 
     def fix_smash(self):
         self.balance -= 500
-        self.house.value *= .80
+        self.house.value += 500
 
     def fix_splat(self):
         self.balance -= 5000
-        self.house.value *= .90
+        self.house.value += 5000
 
     def end_turn(self):
         self.house.value *= 1.01
-        if self.turn == 12:
-            self.repairs.append # repairs you want to add
+        if self.turn == 2:
+            self.repairs.append(("Fix Leak", "fix_leak"))
+            self.house.value *= .60
+        if self.turn == 3:
+            self.repairs.append(("Fix Smash", "fix_smash"))
+            self.house.value *= .80
+        if self.turn == 5:
+            self.repairs.append(("Fix Splat", "fix_splat"))
+            self.house.value *= .90
         self.turn += 1
-
 
 
 class Scene:
@@ -167,23 +197,26 @@ class Scene:
     background = None
 
     def __init__(self, gameobject):
-        keys = {}
-        choices = gameobject.repairs + gameobject.improvements
-        self.choices = []
-        for key, text, event in enumerate(choices, 1):
-            keys[getattr(constants, key)] = event
-            self.choices.append((key, text))
-        self.keys = keys
         self.gameobject = gameobject
+        self.choice_list()
         self.font_l = pygame.font.SysFont(None, self.font_large)
         self.font_m = pygame.font.SysFont(None, self.font_medium)
         self.font_s = pygame.font.SysFont(None, self.font_small)
+
+    def choice_list(self):
+        keys = {}
+        choices = self.gameobject.repairs + self.gameobject.improvements
+        self.choices = []
+        for key, (text, event) in enumerate(choices, 1):
+            keys[getattr(constants, "K_{}".format(key))] = event
+            self.choices.append((key, text))
+        self.keys = keys
 
     def render(self, screen):
         screen.fill(BLACK)
         if self.background:
             image = pygame.image.load(os.path.join(BASE_PATH, 'data', self.background))
-            screen.blit(image, [0,0])
+            screen.blit(image, [0, 0])
         title = self.font_l.render(self.title, True, WHITE)
         screen.blit(title, XY_TITLE)
         prompt = self.font_m.render(self.prompt, True, WHITE)
@@ -198,24 +231,19 @@ class Scene:
         for e in events:
             if e.type == KEYDOWN and e.key in self.keys:
                 # fire event to game object
-                method = getattr(self.gameobject, self.keys[e.key])
-                method()
-                self.update()
+                self.gameobject.do_event(self.keys[e.key])
                 return
             if e.type == KEYDOWN and e.key == K_SPACE:
                 self.gameobject.end_turn()
                 # self.update() #add night background animation
 
     def update(self):
-        raise NotImplementedError
+        self.choice_list()
 
 
 class TestScene(Scene):
     title = "Test"
     prompt = "Prompt Test"
-
-    def update(self):
-        pass
 
 
 class TitleScene(Scene):
@@ -248,7 +276,7 @@ class TitleScene(Scene):
 
     def render(self, screen):
         screen.fill(BLACK)
-        screen.blit(pygame.image.load(os.path.join(BASE_PATH, 'data', 'background_image.png')), [0,0])
+        screen.blit(pygame.image.load(os.path.join(BASE_PATH, 'data', 'background_image.png')), [0, 0])
         screen.blit(self.title, (20, 25))
         screen.blit(self.author, (20, 70))
         accumulated_height = 120
