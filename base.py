@@ -203,6 +203,7 @@ class Scene:
     font_small = 24
     title = ''
     prompt = ''
+    age = ''
     background = 'background_image.png'
 
     def __init__(self, gameobject):
@@ -231,10 +232,12 @@ class Scene:
         screen.blit(title, XY_TITLE)
         prompt = self.font_m.render(self.prompt, True, WHITE)
         screen.blit(prompt, XY_PROMPT)
-        show_balance = self.font_m.render("$ "+str(self.gameobject.balance), True, GREEN)
+        show_balance = self.font_m.render("Funds Available: $ "+str(self.gameobject.balance), True, GREEN)
         screen.blit(show_balance, XY_BALANCE)
-        show_value = self.font_m.render("$ "+str(self.gameobject.house.value), True, YELLOW)
+        show_value = self.font_m.render("House Value: $ "+str(self.gameobject.house.value), True, YELLOW)
         screen.blit(show_value, XY_VALUE)
+        show_value = self.font_s.render("Age: Q" + str(self.gameobject.turn), True, WHITE)
+        screen.blit(show_value, [700,550])
         accumulated_height = Y_CHOICES
         for choice, text in self.choices:
             choice = self.font_s.render("> {}. {}".format(choice, text), True, WHITE)

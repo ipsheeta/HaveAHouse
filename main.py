@@ -27,7 +27,7 @@ class TitleScene(Scene):
         self.font_m = pygame.font.SysFont(None, 26)
         self.font_s = pygame.font.SysFont(None, 24)
         self.title = self.font_l.render(TITLE, True, WHITE)
-        self.author = self.font_m.render('By IPs', True, WHITE)
+        self.author = self.font_m.render('By ips', True, WHITE)
         self.instructions = [
             self.font_s.render("> Press 'Space Bar' for Start Game", True, WHITE),
             self.font_s.render("> Press 'Escape' to Exit", True, WHITE),
