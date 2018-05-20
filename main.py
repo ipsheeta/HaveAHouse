@@ -14,7 +14,7 @@ TITLE = 'Have A House'
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 BASE_PATH = os.getcwd()
-
+BACKGROUND = pygame.image.load('background_image.png')
 
 def save_file(content, filepath=None):
     if filepath is None:
@@ -90,7 +90,6 @@ def render_textrect(string, font, rect, text_color, justification=0):
     return surface
 
 
-
 class TextRectException(Exception):
     pass
 
@@ -137,6 +136,7 @@ class TitleScene(Scene):
 
     def render(self, screen):
         screen.fill(BLACK)
+        screen.blit(BACKGROUND, [0,0])
         screen.blit(self.title, (20, 25))
         screen.blit(self.author, (20, 70))
         accumulated_height = 120
@@ -149,7 +149,7 @@ class InstructionScene(Scene):
     def __init__(self):
         self.font_l = pygame.font.SysFont(None, 32)
         self.font_s = pygame.font.SysFont(None, 18)
-        self.title = self.font_l.render("Intstructions", True, WHITE)
+        self.title = self.font_l.render("Instructions", True, WHITE)
         self.instructions = [
             self.font_s.render("> ", True, WHITE),
             self.font_s.render("> ", True, WHITE)
