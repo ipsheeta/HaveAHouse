@@ -13,12 +13,16 @@ TITLE = 'Have A House'
 
 XY_TITLE = (20, 25)
 XY_PROMPT = (20, 70)
+XY_BALANCE = (700, 70)
+XY_VALUE = (700, 100)
 X_CHOICES = 25
 Y_CHOICES = 120
 INC_CHOICES = 35
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
+GREEN = (0, 255, 0)
+YELLOW = (255, 255, 0)
 BASE_PATH = os.getcwd()
 
 
@@ -127,6 +131,13 @@ class GameObject:
                              ]
         self.turn = 1
 
+    def spend_money(self, cost):
+        new_balance = self.balance-cost
+        if new_balance < 0:
+            print("Not enough money! Save some first.")
+            return
+        self.balance = new_balance
+
     def do_event(self, event):
         method = getattr(self, event)
         method()
@@ -150,32 +161,33 @@ class GameObject:
 
     # improvements
     def install_solar(self):
-        self.balance -= 10000
+        self.spend_money(10000)
         self.house.value += 8000
 
     def change_paint(self):
-        self.balance -= 1000
+        self.spend_money(1000)
         self.house.value *= 1.02
 
     def add_addition(self):
-        self.balance -= 25000
+        self.spend_money(25000)
         self.house.value += 20000
 
     # repairs
     def fix_leak(self):
-        self.balance -= 10000
+        self.spend_money(10000)
         self.house.value += 10000
 
     def fix_smash(self):
-        self.balance -= 500
+        self.spend_money(500)
         self.house.value += 500
 
     def fix_splat(self):
-        self.balance -= 5000
+        self.spend_money(5000)
         self.house.value += 5000
 
     def end_turn(self):
         self.house.value *= 1.01
+        self.balance += 3000
         if self.turn == 2:
             self.repairs.append(("Fix Leak", "fix_leak"))
             self.house.value *= .60
@@ -216,11 +228,16 @@ class Scene:
         screen.fill(BLACK)
         if self.background:
             image = pygame.image.load(os.path.join(BASE_PATH, 'data', self.background))
+            image = pygame.transform.scale(image, (SCREEN_WIDTH, SCREEN_HEIGHT))
             screen.blit(image, [0, 0])
         title = self.font_l.render(self.title, True, WHITE)
         screen.blit(title, XY_TITLE)
         prompt = self.font_m.render(self.prompt, True, WHITE)
         screen.blit(prompt, XY_PROMPT)
+        show_balance = self.font_m.render("$ "+str(self.gameobject.balance), True, GREEN)
+        screen.blit(show_balance, XY_BALANCE)
+        show_value = self.font_m.render("$ "+str(self.gameobject.house.value), True, YELLOW)
+        screen.blit(show_value, XY_VALUE)
         accumulated_height = Y_CHOICES
         for choice, text in self.choices:
             choice = self.font_s.render("> {}. {}".format(choice, text), True, WHITE)
@@ -244,7 +261,6 @@ class Scene:
 class TestScene(Scene):
     title = "Test"
     prompt = "Prompt Test"
-
 
 class TitleScene(Scene):
     def __init__(self, gameobject):
@@ -276,7 +292,9 @@ class TitleScene(Scene):
 
     def render(self, screen):
         screen.fill(BLACK)
-        screen.blit(pygame.image.load(os.path.join(BASE_PATH, 'data', 'background_image.png')), [0, 0])
+        image = pygame.image.load(os.path.join(BASE_PATH, 'data', 'background_image.png'))
+        image = pygame.transform.scale(image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        screen.blit(image, [0,0])
         screen.blit(self.title, (20, 25))
         screen.blit(self.author, (20, 70))
         accumulated_height = 120
@@ -288,6 +306,7 @@ class TitleScene(Scene):
 class StartScene(Scene):
     title = ''
     prompt = 'Choose your home type'
+    background = 'background_image.png'
 
     def __init__(self, gameobject):
         super().__init__(gameobject)
@@ -300,7 +319,16 @@ class StartScene(Scene):
         pass
 
     def render(self, screen):
-        super().render(screen)
+        screen.fill(BLACK)
+        if self.background:
+            image = pygame.image.load(os.path.join(BASE_PATH, 'data', self.background))
+            image = pygame.transform.scale(image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            screen.blit(image, [0, 0])
+        title = self.font_l.render(self.title, True, WHITE)
+        screen.blit(title, XY_TITLE)
+        prompt = self.font_m.render(self.prompt, True, WHITE)
+        screen.blit(prompt, XY_PROMPT)
+
         instruction_height = 100
         for instruction in self.instructions:
             screen.blit(instruction, (45, instruction_height))
