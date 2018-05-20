@@ -1,5 +1,6 @@
 import os, sys, pygame, os, random
 from pygame.locals import *
+from pygame import constants
 from pgu import gui
 
 
@@ -11,10 +12,15 @@ DEPTH = 0
 FPS = 0
 TITLE = 'Have A House'
 
+XY_TITLE = (20,25)
+XY_PROMPT = (20,70)
+X_CHOICES = 25
+Y_CHOICES = 120
+INC_CHOICES = 35
+
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 BASE_PATH = os.getcwd()
-BACKGROUND = pygame.image.load('background_image.png')
 
 def save_file(content, filepath=None):
     if filepath is None:
@@ -94,30 +100,138 @@ class TextRectException(Exception):
     pass
 
 
+class House:
+    value = 0
+    winning = 1000000
+
+
+class Rural:
+    value = 125000
+    winning = 137500
+
+
+class Suburb:
+    value = 400000
+    winning = 440000
+
+
+class GameObject:
+    def __init__(self, balance=0, house=House()):
+        self.balance = balance
+        self.house = house
+        self.value = 0
+        self.repairs = []
+        self.improvements = [] # preloaded improvements
+        self.turn = 0
+
+#improvements
+    def install_solar(self):
+        self.balance -= 10000
+        self.house.value += 8000
+
+    def change_paint(self):
+        self.balance -= 1000
+        self.house.value *= 1.02
+
+    def add_addition(self):
+        self.balance -= 25000
+        self.house.value += 20000
+
+#repairs
+    def fix_leak(self):
+        self.balance -= 10000
+        self.house.value *= .60
+
+    def fix_smash(self):
+        self.balance -= 500
+        self.house.value *= .80
+
+    def fix_splat(self):
+        self.balance -= 5000
+        self.house.value *= .90
+
+    def end_turn(self):
+        self.house.value *= 1.01
+        if self.turn == 12:
+            self.repairs.append # repairs you want to add
+        self.turn += 1
+
+
+
 class Scene:
+    font_large = 42
+    font_medium = 30
+    font_small = 24
+    title = ''
+    prompt = ''
+    background = None
+
+    def __init__(self, gameobject):
+        keys = {}
+        choices = gameobject.repairs + gameobject.improvements
+        self.choices = []
+        for key, text, event in enumerate(choices, 1):
+            keys[getattr(constants, key)] = event
+            self.choices.append((key, text))
+        self.keys = keys
+        self.gameobject = gameobject
+        self.font_l = pygame.font.SysFont(None, self.font_large)
+        self.font_m = pygame.font.SysFont(None, self.font_medium)
+        self.font_s = pygame.font.SysFont(None, self.font_small)
+
     def render(self, screen):
-        raise NotImplementedError
+        screen.fill(BLACK)
+        if self.background:
+            image = pygame.image.load(os.path.join(BASE_PATH, 'data', self.background))
+            screen.blit(image, [0,0])
+        title = self.font_l.render(self.title, True, WHITE)
+        screen.blit(title, XY_TITLE)
+        prompt = self.font_m.render(self.prompt, True, WHITE)
+        screen.blit(prompt, XY_PROMPT)
+        accumulated_height = Y_CHOICES
+        for choice, text in self.choices:
+            choice = self.font_s.render("> {}. {}".format(choice, text), True, WHITE)
+            screen.blit(choice, (X_CHOICES, accumulated_height))
+            accumulated_height += INC_CHOICES
 
     def handle_events(self, events):
-        raise NotImplementedError
+        for e in events:
+            if e.type == KEYDOWN and e.key in self.keys:
+                # fire event to game object
+                method = getattr(self.gameobject, self.keys[e.key])
+                method()
+                self.update()
+                return
+            if e.type == KEYDOWN and e.key == K_SPACE:
+                self.gameobject.end_turn()
+                # self.update() #add night background animation
 
     def update(self):
         raise NotImplementedError
 
 
+class TestScene(Scene):
+    title = "Test"
+    prompt = "Prompt Test"
+
+    def update(self):
+        pass
+
+
 class TitleScene(Scene):
-    def __init__(self):
+    def __init__(self, gameobject):
         self.font_l = pygame.font.SysFont(None, 42)
         self.font_m = pygame.font.SysFont(None, 26)
         self.font_s = pygame.font.SysFont(None, 24)
         self.title = self.font_l.render(TITLE, True, WHITE)
         self.author = self.font_m.render('By IPs', True, WHITE)
         self.instructions = [
-            self.font_s.render("> Press 'Space Bar' for New Game", True, WHITE),
+            self.font_s.render("> Press 'Space Bar' for Start Game", True, WHITE),
             self.font_s.render("> Press 'Escape' to Exit", True, WHITE),
             self.font_s.render("> Press 'O' to Load Game ", True, WHITE),
-            self.font_s.render("> Press 'I' for instructions", True, WHITE)
+            # self.font_s.render("> Press 'I' for instructions", True, WHITE)
         ]
+        super().__init__(gameobject)
 
     def update(self):
         pass
@@ -126,23 +240,52 @@ class TitleScene(Scene):
         for e in events:
             if e.type == KEYDOWN and e.key == K_ESCAPE:
                 terminate()
-            if e.type == KEYDOWN and e.key == K_o:
-                chapterKey, page_index = load_file()
-                self.manager.go_to(StoryScene(chapterKey, page_index))
+            # if e.type == KEYDOWN and e.key == K_o:
+            #     chapterKey, page_index = load_file()
+            #     self.manager.go_to(StoryScene(chapterKey, page_index))
             if e.type == KEYDOWN and e.key == K_SPACE:
-                self.manager.go_to(StoryScene('ChapterOne', 0))
-            if e.type == KEYDOWN and e.key == K_i:
-                self.manager.go_to(InstructionScene())
+                self.manager.go_to(StartScene(self.gameobject))
 
     def render(self, screen):
         screen.fill(BLACK)
-        screen.blit(BACKGROUND, [0,0])
+        screen.blit(pygame.image.load(os.path.join(BASE_PATH, 'data', 'background_image.png')), [0,0])
         screen.blit(self.title, (20, 25))
         screen.blit(self.author, (20, 70))
         accumulated_height = 120
         for instruction in self.instructions:
             screen.blit(instruction, (25, accumulated_height))
             accumulated_height += 35
+
+
+class StartScene(Scene):
+    title = ''
+    prompt = 'Choose your home type'
+
+    def __init__(self, gameobject):
+        super().__init__(gameobject)
+        self.instructions = [
+            self.font_s.render("> A. 2BD/2BA in Suburbia", True, WHITE),
+            self.font_s.render("> B. 2BD/2BA Rural Property", True, WHITE)
+        ]
+
+    def update(self):
+        pass
+
+    def render(self, screen):
+        super().render(screen)
+        instruction_height = 100
+        for instruction in self.instructions:
+            screen.blit(instruction, (45, instruction_height))
+            instruction_height += 25
+
+    def handle_events(self, events):
+        for e in events:
+            if e.type == KEYDOWN and e.key == K_a:
+                self.gameobject.house = Suburb()
+                self.manager.go_to(TestScene(self.gameobject))
+            if e.type == KEYDOWN and e.key == K_b:
+                self.gameobject.house = Rural()
+                self.manager.go_to(TestScene(self.gameobject))
 
 
 class InstructionScene(Scene):
@@ -175,7 +318,8 @@ class InstructionScene(Scene):
 class SceneManager:
     def __init__(self):
         self.scene = None
-        self.go_to(TitleScene())
+        gameobject = GameObject()
+        self.go_to(TitleScene(gameobject))
 
     def go_to(self, scene):
         self.scene = scene
