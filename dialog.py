@@ -4,12 +4,12 @@ from pgu import gui
 
 
 class EventDialog(gui.Dialog):
-    def __init__(self, title='', text_stream=''):
+    def __init__(self, title = '', text_stream = ''):
         title = gui.Label(title)
 
         width = 400
         height = 200
-        doc = gui.Document(width=width)
+        doc = gui.Document(width = width)
 
         space = title.style.font.size(" ")
 
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     app = gui.Desktop()
     app.connect(gui.QUIT, app.quit, None)
 
-    c = gui.Table(width=640, height=480)
+    c = gui.Table(width = 640, height = 480)
 
     dialog = EventDialog("test for ips", "This is a paragraph\nAnd this is another one\n")
 
